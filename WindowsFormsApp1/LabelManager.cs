@@ -1,4 +1,5 @@
-﻿using System;
+﻿using LabelManager2;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,26 +9,43 @@ namespace WindowsFormsApp1
 {
     public class LabelManager
     {
+     
+
+        private ApplicationClass lbl;
+
+        private Document doc;
+
         //引用codesoft 参考,构造函数初始化
-        public LabelManager(string LabelPath)
+        public LabelManager(string labelPath)
         {
-            //lb = document.open(LabelPath);
+            lbl = new ApplicationClass();
+
+            lbl.Documents.Open(labelPath, false); // 開啟label文件
+
+            doc = lbl.ActiveDocument;
+
         }
 
         public void SetVariableValue(string name, string value)
         {
-            //lb.variable[name] = value;
+            doc.Variables.FormVariables.Item(name).Value = value;
         }
 
-        public string[] GetVariableName()
+        public string[] GetAllVariableName()
         {
-            // return lb.variable;
-            return new string[] { };
+            string[] sLabelParam = new string[doc.Variables.FormVariables.Count];
+       
+            for (int i = 1; i <= doc.Variables.FormVariables.Count; i++)
+            {
+                sLabelParam[i - 1] = doc.Variables.FormVariables.Item(i).Name;
+            }
+
+            return sLabelParam;
         }
 
-        public void Print()
+        public void Print(int qty)
         {
-            //lb.print();
+            doc.PrintDocument(qty);
         }
     }
 }

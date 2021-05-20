@@ -1,9 +1,12 @@
-﻿using myControl;
+﻿using LabelManager2;
+using myControl;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -15,6 +18,12 @@ namespace WindowsFormsApp1
     {
         public List<ParamPair> Params;
 
+        private LabelManager Manager;
+
+        private ILogger logger;
+        private ILogger logger1;
+
+        private string pathBase = Directory.GetCurrentDirectory();
         public Form1()
         {
             InitializeComponent();
@@ -26,83 +35,99 @@ namespace WindowsFormsApp1
                 new ParamPair {name="datecode",value = "v1" },
                 new ParamPair {name="qty",value = "v1" },
             };
+
+            logger = new LoggerConfiguration()
+                .WriteTo.File(path:"log\\part1\\log_.txt",rollingInterval: RollingInterval.Day,retainedFileCountLimit:31)
+                .CreateLogger();
+            // 针对log 在不同的文件夹命名 创建多个log实例
+            logger1 = new LoggerConfiguration()
+                .WriteTo.File(path: "log\\part2\\log_.txt", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 31)
+                .CreateLogger();
         }
 
         
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            TestFormInit();
+            //TestFormInit();
+            LoadLabelFile();
+            ts_log.Text = "please choose label file!!!";
+
+            logger.Information("app start!!");
+            logger1.Information("app start!!");
+            Params.ForEach(x =>
+            {
+                flowLayoutPanel1.Controls.Add(new textForm(x.name, x.value));
+            });
+            
         }
 
         private void button1_Click(object sender, EventArgs e)
         {
-            flowLayoutPanel1.Controls.Add(new textForm("姓名", "啦啦啦啦"));
+            //flowLayoutPanel1.Controls.Add(new textForm("姓名", "啦啦啦啦"));
+
+            LabelInit();
         }
 
-        private void TestFormInit()
+
+        private void LoadLabelFile() 
         {
 
-            #region 从codesoft 模板获取变量名,动态生产参数表单
+            cb_labels.Items.Clear();
 
-            Params.ForEach(x =>
-            {
-                flowLayoutPanel1.Controls.Add(new textForm(x.name,x.value));
-            });
+            var labs = Directory.GetFiles(pathBase, "*.lab");
 
-            #endregion
+            foreach (var lab in labs)
+            {           
+                cb_labels.Items.Add(Path.GetFileName(lab));         
+            }
+            //cb_labels.SelectedIndex = 0;
+
         }
+
+
+        private void LabelInit()
+        {
+
+            string labelPath = Path.Combine(pathBase, "BM_Default.LAB");
+
+            Manager = new LabelManager(labelPath);
+        }
+
 
         private void button2_Click(object sender, EventArgs e)
         {
 
             #region 获取表单维护的参数,并更新模板变量值
-            Params = flowLayoutPanel1.Controls.Cast<textForm>().ToList().Select(
+
+            try
+            {
+                Params = flowLayoutPanel1.Controls.Cast<textForm>().ToList().Select(
                   x => new ParamPair() { name = x.GetTitle(), value = x.GetContent() }
                   ).ToList();
 
-            Params.ForEach(x =>
-            {
-                //ducoment.params[x.name] = x.value;
+                Params.ForEach(x =>
+                {
+                    //ducoment.params[x.name] = x.value;
+                    Manager.SetVariableValue(x.name, x.value);
+                    logger.Information($"set {x.name} = {x.value} ");
+                });
 
-;            });
+                Manager.Print(1);
+
+                ts_log.Text = $"print  finished!!!";
+                logger.Information($"print  finished!!!");
+            }
+            catch (Exception ex)
+            {
+                logger.Error( $"{ex.Message} - {ex.StackTrace}");
+            }
+
+            
+
             #endregion
         }
 
-        private void SelectLabel(string path)
-        {
-            LabelManager manager = new LabelManager(path);
-
-            manager.GetVariableName().ToList().ForEach(x =>
-            {
-                flowLayoutPanel1.Controls.Add(new textForm(x, string.Empty));
-            });
-
-        }
-
-        private void radioButton1_CheckedChanged(object sender, EventArgs e)
-        {
-            var rb =  sender as RadioButton;
-
-            var data = flowLayoutPanel1.Controls.Cast<textForm>().ToList().Select(
-                 x => new ParamPair() { name = x.GetTitle(), value = x.GetContent() }
-                 ).ToList();
-
-            if (rb.Checked)
-            {
-                flowLayoutPanel1.Controls.Cast<textForm>().ToList().ForEach(x =>
-                {
-                    x.Clear();
-                });
-            }
-            else
-            {
-                flowLayoutPanel1.Controls.Cast<textForm>().ToList().ForEach(x =>
-                {
-                    x.SetContent(Params.FirstOrDefault(z=>z.name == x.GetTitle())?.value);
-                });
-            }
-        }
 
         private void checkBox1_CheckedChanged(object sender, EventArgs e)
         {
@@ -126,6 +151,29 @@ namespace WindowsFormsApp1
                 {
                     x.SetContent(Params.FirstOrDefault(z => z.name == x.GetTitle())?.value);
                 });
+            }
+
+        }
+
+        private void cb_labels_SelectedValueChanged(object sender, EventArgs e)
+        {
+            string labelPath = Path.Combine(pathBase, cb_labels.SelectedText);
+
+            try
+            {
+                Manager = new LabelManager(labelPath);
+
+                Manager.GetAllVariableName().ToList().ForEach(x =>
+                {
+                    flowLayoutPanel1.Controls.Add(new textForm(x, string.Empty));
+                    logger.Information($"variable name:{x}");
+                });
+             
+            }
+            catch(Exception ex)
+            {
+                logger.Error($"{ex.Message} -- {ex.StackTrace}");
+                MessageBox.Show(ex.Message);
             }
 
         }

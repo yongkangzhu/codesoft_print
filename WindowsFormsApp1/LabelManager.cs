@@ -11,14 +11,13 @@ namespace WindowsFormsApp1
     {
      
 
-        private ApplicationClass lbl;
-
+        private static ApplicationClass lbl = new ApplicationClass();
+     
         private Document doc;
 
         //引用codesoft 参考,构造函数初始化
         public LabelManager(string labelPath)
         {
-            lbl = new ApplicationClass();
 
             lbl.Documents.Open(labelPath, false); // 開啟label文件
 

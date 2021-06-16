@@ -21,28 +21,31 @@ namespace WindowsFormsApp1
         private LabelManager Manager;
 
         private ILogger logger;
-        private ILogger logger1;
+
+        private int PrintQty => Convert.ToInt32(tb_print_qty.Text);
+        //private ILogger logger1;
 
         private string pathBase = Directory.GetCurrentDirectory();
         public Form1()
         {
             InitializeComponent();
+            Params = new List<ParamPair>();
 
-            Params = new List<ParamPair>()
-            {
-                new ParamPair {name="vendor",value = "v1" },
-                new ParamPair {name="partno",value = "v1" },
-                new ParamPair {name="datecode",value = "v1" },
-                new ParamPair {name="qty",value = "v1" },
-            };
+            //Params = new List<ParamPair>()
+            //{
+            //    new ParamPair {name="vendor",value = "v1" },
+            //    new ParamPair {name="partno",value = "v1" },
+            //    new ParamPair {name="datecode",value = "v1" },
+            //    new ParamPair {name="qty",value = "v1" },
+            //};
 
             logger = new LoggerConfiguration()
-                .WriteTo.File(path:"log\\part1\\log_.txt",rollingInterval: RollingInterval.Day,retainedFileCountLimit:31)
+                .WriteTo.File(path:"log\\log_.txt",rollingInterval: RollingInterval.Day,retainedFileCountLimit:31)
                 .CreateLogger();
             // 针对log 在不同的文件夹命名 创建多个log实例
-            logger1 = new LoggerConfiguration()
-                .WriteTo.File(path: "log\\part2\\log_.txt", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 31)
-                .CreateLogger();
+            //logger1 = new LoggerConfiguration()
+            //    .WriteTo.File(path: "log\\part2\\log_.txt", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 31)
+            //    .CreateLogger();
         }
 
         
@@ -54,20 +57,14 @@ namespace WindowsFormsApp1
             ts_log.Text = "please choose label file!!!";
 
             logger.Information("app start!!");
-            logger1.Information("app start!!");
-            Params.ForEach(x =>
-            {
-                flowLayoutPanel1.Controls.Add(new textForm(x.name, x.value));
-            });
+            //logger1.Information("app start!!");
+            //Params.ForEach(x =>
+            //{
+            //    flowLayoutPanel1.Controls.Add(new textForm(x.name, x.value));
+            //});
             
         }
 
-        private void button1_Click(object sender, EventArgs e)
-        {
-            //flowLayoutPanel1.Controls.Add(new textForm("姓名", "啦啦啦啦"));
-
-            LabelInit();
-        }
 
 
         private void LoadLabelFile() 
@@ -113,7 +110,7 @@ namespace WindowsFormsApp1
                     logger.Information($"set {x.name} = {x.value} ");
                 });
 
-                Manager.Print(1);
+                Manager.Print(PrintQty);
 
                 ts_log.Text = $"print  finished!!!";
                 logger.Information($"print  finished!!!");
@@ -157,7 +154,9 @@ namespace WindowsFormsApp1
 
         private void cb_labels_SelectedValueChanged(object sender, EventArgs e)
         {
-            string labelPath = Path.Combine(pathBase, cb_labels.SelectedText);
+            flowLayoutPanel1.Controls.Clear();
+
+            string labelPath = Path.Combine(pathBase, cb_labels.Text);
 
             try
             {
@@ -166,9 +165,13 @@ namespace WindowsFormsApp1
                 Manager.GetAllVariableName().ToList().ForEach(x =>
                 {
                     flowLayoutPanel1.Controls.Add(new textForm(x, string.Empty));
+
                     logger.Information($"variable name:{x}");
                 });
-             
+
+                
+
+
             }
             catch(Exception ex)
             {
@@ -176,6 +179,21 @@ namespace WindowsFormsApp1
                 MessageBox.Show(ex.Message);
             }
 
+        }
+
+        private void tb_print_qty_Leave(object sender, EventArgs e)
+        {
+            var tb = sender as TextBox;
+
+            var check = int.TryParse(tb.Text, out int print_qty) && print_qty > 0;
+
+            if (!check)
+            {
+                MessageBox.Show("print qty unavaliable!");
+                tb.Focus();
+                tb.SelectAll();
+            }
+           
         }
     }
 }
